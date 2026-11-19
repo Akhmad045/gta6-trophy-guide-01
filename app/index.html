@@ -3,85 +3,92 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leonida Ledger — GTA VI Trophy Guide &amp; Tracker</title>
-<meta name="description" content="Offline guide and tracker for all 55 Grand Theft Auto VI PlayStation 5 trophies: checklist, roadmap to the platinum, missable flags and a cited guide for every trophy.">
+<title>Leonida Nights — GTA VI Trophy Guide &amp; Tracker</title>
+<meta name="description" content="Offline guide and tracker for all 55 Grand Theft Auto VI PlayStation 5 trophies: official names, descriptions and grades, a roadmap to the platinum, missable-watch flags and a saved checklist.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="masthead">
-  <div class="masthead-text">
-    <p class="kicker">Grand Theft Auto VI · PlayStation 5 · Offline guide &amp; tracker</p>
-    <h1>Leonida Ledger</h1>
-    <p class="standfirst">Every one of the 55 trophies — its official name, description and grade, a guide in our own words that cites its sources, and a checklist that remembers where you got to.</p>
-  </div>
-  <div class="scoreboard" aria-label="Your progress">
-    <p class="score-big"><span id="earned-count">0</span><span class="score-of"> / 55 earned</span></p>
-    <div class="bar" role="progressbar" aria-label="Trophies earned" aria-valuemin="0" aria-valuemax="55" aria-valuenow="0" id="progress-bar"><span id="progress-fill"></span></div>
-    <p class="score-grades" id="grade-counts">1 platinum · 2 gold · 6 silver · 46 bronze</p>
-    <p class="score-note">55 trophies · 28 hidden on PlayStation · 1 missable · no online trophies</p>
+<div class="skyline" aria-hidden="true"></div>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <p class="hero-kicker">Grand Theft Auto VI · PlayStation 5 · Offline Trophy Guide</p>
+      <h1>Leonida <span class="gradient-text">Nights</span></h1>
+      <p class="hero-sub">Every one of the 55 official trophies — name, description and grade as PlayStation publishes them — with a guide to each, a five-stage roadmap to the platinum, and a checklist that remembers your hunt.</p>
+      <nav class="view-tabs" aria-label="Guide views">
+        <button type="button" class="view-tab is-active" data-view-tab="guide">Checklist &amp; Guide</button>
+        <button type="button" class="view-tab" data-view-tab="roadmap">Roadmap</button>
+        <button type="button" class="view-tab" data-view-tab="missables">Missable Watch</button>
+      </nav>
+    </div>
+    <div id="header-stats" class="header-stats" aria-live="polite"></div>
   </div>
 </header>
 
-<nav class="tabs" aria-label="Views">
-  <button type="button" class="tab is-active" data-view="checklist" id="tab-checklist">Checklist &amp; guides</button>
-  <button type="button" class="tab" data-view="roadmap" id="tab-roadmap">Roadmap to the platinum</button>
-  <button type="button" class="tab" data-view="missables" id="tab-missables">Missables <span class="tab-badge">1</span></button>
-</nav>
+<div class="toolbar" role="search">
+  <div class="toolbar-row">
+    <label class="search-box">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input id="search" type="search" placeholder="Search trophies, missions, activities…" autocomplete="off">
+    </label>
+    <label class="select-wrap">Sort
+      <select id="sort">
+        <option value="roadmap">Roadmap order</option>
+        <option value="grade">Grade — rarest first</option>
+        <option value="name">Name A–Z</option>
+        <option value="remaining">Remaining first</option>
+      </select>
+    </label>
+    <label class="select-wrap">Show
+      <select id="earned-filter">
+        <option value="all">All trophies</option>
+        <option value="earned">Earned only</option>
+        <option value="remaining">Remaining only</option>
+      </select>
+    </label>
+    <label class="spoiler-wrap" title="Hide the names and descriptions of story trophies until you earn them">
+      <input id="spoiler-toggle" type="checkbox"> Spoiler shield
+    </label>
+  </div>
+  <div class="toolbar-row chips-row">
+    <div class="chip-group" aria-label="Filter by grade">
+      <button type="button" class="chip is-active" data-grade-chip="all">All grades</button>
+      <button type="button" class="chip chip-platinum" data-grade-chip="platinum">Platinum · 1</button>
+      <button type="button" class="chip chip-gold" data-grade-chip="gold">Gold · 2</button>
+      <button type="button" class="chip chip-silver" data-grade-chip="silver">Silver · 6</button>
+      <button type="button" class="chip chip-bronze" data-grade-chip="bronze">Bronze · 46</button>
+    </div>
+    <div class="chip-group" aria-label="Filter by kind">
+      <button type="button" class="chip is-active" data-kind-chip="all">All kinds</button>
+      <button type="button" class="chip" data-kind-chip="story">Story</button>
+      <button type="button" class="chip" data-kind-chip="side">Strangers &amp; Side</button>
+      <button type="button" class="chip" data-kind-chip="collectibles">Collectibles</button>
+      <button type="button" class="chip" data-kind-chip="activities">Activities</button>
+      <button type="button" class="chip" data-kind-chip="world">World &amp; Free Roam</button>
+      <button type="button" class="chip chip-watch" data-kind-chip="missable">⚠ Missable watch</button>
+    </div>
+    <div class="toolbar-actions">
+      <button type="button" id="export-btn" class="action-btn">Export progress</button>
+      <label class="action-btn import-btn">Import progress <input id="import-input" type="file" accept="application/json" hidden></label>
+      <button type="button" id="reset-btn" class="action-btn action-btn-quiet">Reset</button>
+    </div>
+  </div>
+  <p id="result-count" class="result-count" aria-live="polite"></p>
+</div>
 
 <main>
-  <section id="view-checklist" class="view">
-    <div class="controls" role="search">
-      <label class="field grow">Search trophies
-        <input id="search" type="search" placeholder="Try “meditate”, “vault”, “Cal”…" autocomplete="off">
-      </label>
-      <label class="field">Grade
-        <select id="grade-filter">
-          <option value="all">All grades</option>
-          <option value="platinum">Platinum</option>
-          <option value="gold">Gold</option>
-          <option value="silver">Silver</option>
-          <option value="bronze">Bronze</option>
-        </select>
-      </label>
-      <label class="check"><input type="checkbox" id="spoiler-toggle" checked> Hide story spoilers</label>
-      <label class="check"><input type="checkbox" id="todo-toggle"> Still to earn only</label>
-      <button type="button" id="export-btn" class="btn">Export progress</button>
-      <label class="btn file-btn">Import progress<input id="import-input" type="file" accept="application/json,.json" hidden></label>
-    </div>
-    <div class="chips" id="kind-chips" role="group" aria-label="Filter by kind"></div>
-    <p class="result-line" id="result-line" aria-live="polite"></p>
-    <div class="layout">
-      <ol class="cards" id="cards"></ol>
-      <aside class="detail" id="detail" aria-label="Trophy guide">
-        <p class="detail-empty">Pick a trophy from the list to read its guide — what to do, where and how, when it can be missed, and the sources each fact comes from.</p>
-      </aside>
-    </div>
-  </section>
-
-  <section id="view-roadmap" class="view" hidden>
-    <div class="prose">
-      <h2>Roadmap to the platinum</h2>
-      <p>One playthrough is enough: there is no mission replay, no difficulty trophy and no online trophy, and free-roam continues after the credits. The order below is built from the official trophy descriptions — which story chapters and missions, which collectibles and counts — and cross-checked against the launch guides cited in each stage. Estimated total: about 200 hours, most of it in stage 6. Keep a manual save at the start of every chapter, and never play with cheats on: cheats disable trophies and saving.</p>
-    </div>
-    <ol class="stages" id="stages"></ol>
-  </section>
-
-  <section id="view-missables" class="view" hidden>
-    <div class="prose">
-      <h2>Missable trophies</h2>
-      <p>Built from the official descriptions and checked against the launch guides, exactly <strong>one</strong> of the 55 trophies can be missed. Everything else — every story trophy included — either pops on its mission or stays available in free-roam after the story. The one to protect:</p>
-    </div>
-    <div id="missable-list"></div>
-    <div class="prose">
-      <h3>Not missable, despite appearances</h3>
-      <p>Character questlines that go quiet mid-story (Kenton after Chapter 1, for one) all return before the end, and every quest giver is still around after the credits. Optional missions with hourglass timers can expire, but none of them feeds a trophy. The Kingpin Bowling valuables for Let’s Go Bowling can be collected across several visits. If you keep a save at each chapter start and take the Chapter 1 balcony meditation, the platinum cannot lock you out.</p>
-    </div>
-  </section>
+  <div id="guide-view" class="guide-layout">
+    <div id="trophy-list" class="trophy-list"></div>
+    <aside id="detail-pane" class="detail-pane" aria-label="Trophy guide"></aside>
+  </div>
+  <section id="roadmap-view" class="page-view" hidden></section>
+  <section id="missables-view" class="page-view" hidden></section>
 </main>
 
-<footer class="colophon">
-  <p>Leonida Ledger is a fan-made, offline guide. Official trophy names and descriptions are PlayStation’s; every guide here is written for this app and cites its sources beside the trophy. Not affiliated with Rockstar Games or PlayStation. Progress lives only in your browser (localStorage) — export it to keep a copy.</p>
+<footer class="site-footer">
+  <p><strong>Leonida Nights</strong> is an unofficial, fan-made guide. Trophy names, descriptions and grades are the official PlayStation 5 list for Grand Theft Auto VI, as listed by Exophase and PSNProfiles (cross-checked 2026-11-18); tracked counts are PlayStation’s, via PSNProfiles. Every guide here is written for this guide from the official descriptions — where a description is cryptic, the guide says so instead of inventing steps. No Rockstar Games artwork or logos are used; the look is this guide’s own. Progress is stored only in your browser (localStorage) and never leaves your device except in a file you export yourself.</p>
 </footer>
+
 <script type="module" src="app.js"></script>
 </body>
 </html>
