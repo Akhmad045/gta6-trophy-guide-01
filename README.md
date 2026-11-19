@@ -1,53 +1,41 @@
-# Leonida Nights — GTA VI Trophy Guide & Tracker
-
 [![make.fun · gta6-trophy-guide-01](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
 [![rank](https://make.fun/badge/gta6-trophy-guide-01/Akhmad045/gta6-trophy-guide-01/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
 [![reward](https://make.fun/badge/gta6-trophy-guide-01/Akhmad045/gta6-trophy-guide-01/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-trophy-guide-01)
 
-An offline guide and tracker for all **55 PlayStation 5 trophies of Grand Theft Auto VI**, built for the make.fun bounty [gta6-trophy-guide-01](https://make.fun/bounty/gta6-trophy-guide-01). Open the app and the full guide is already there — no account, no network, no build step.
+# Leonida Nights — GTA VI Trophy Guide & Tracker
+
+A premium, fully offline guide and tracker for all **55 PlayStation 5 trophies** of Grand Theft Auto VI: 1 Platinum, 2 Gold, 6 Silver, 46 Bronze. Built for the make.fun bounty [gta6-trophy-guide-01](https://make.fun/bounty/gta6-trophy-guide-01).
+
+Open `app/index.html` in a desktop browser (or run `node serve.ts` and visit http://localhost:8080). No build step, no network: every file the app loads lives under `app/`.
 
 ## What it does
 
-- **The complete official list.** Every trophy with its name, description and grade exactly as PlayStation publishes them (1 platinum, 2 gold, 6 silver, 46 bronze), grouped into Story, Strangers & Side, Collectibles & Exploration, Activities, World & Free Roam, Completion and the Platinum itself.
-- **A guide to every trophy, with its sources.** Each trophy opens a guide panel: the official description set apart and labelled, then an original guide in this guide's own words — what to do, when in the run to do it, and what to watch for — plus a sources line naming where the official data comes from (the PlayStation list as published by Exophase and PSNProfiles; tracked counts via PSNProfiles). Where a description is deliberately cryptic, the guide says so instead of inventing steps.
-- **A tracker that remembers.** Click a trophy's check to mark it earned; progress is saved in the browser (localStorage) and shown in a sticky header with a completion ring, a progress bar and per-grade counts. Trophies with a PlayStation-tracked count (250 stunts, 42 range challenges, $250,000 laundered…) get a counter in their guide panel. Progress can be **exported** to a JSON file and **imported** back, and reset from the toolbar.
-- **Filters that make 55 trophies scannable.** Text search, grade chips (Platinum / Gold / Silver / Bronze), kind chips, an earned/remaining filter, four sort orders (roadmap, grade, name, remaining first), and a **spoiler shield** that hides the names and descriptions of story trophies until you earn them.
-- **A five-stage roadmap to the platinum.** Story first, then stranger strands, collectibles and exploration, activities and skill, and finally the free-roam feats and the 100% cleanup — each stage explains its reasoning from the official descriptions and lists its trophies as chips that jump straight to their guides.
-- **A missable watch, honestly built.** No official description labels a trophy "missable", so instead of inventing certainty, the guide flags the four trophies whose descriptions are worded around a choice, a single named moment, or a success that needs a failed first try — Catch Me If You Can, In The Beginning…, Actions Speak Louder and Bad Luck, I Guess — each with the quoted description and the reasoning, plus save advice. The same flags appear as badges on the cards and in the guide panels.
+- **The complete official list, verbatim.** Every trophy shows its official name, description and grade exactly as PlayStation publishes them — including “T**s Ass Drug Money” and “In The Beginning…” — labelled in the guide pane as official text.
+- **An original, cited guide to every trophy.** Each guide is written for this app from the official description (what to do, in what order, what to watch for) and ends with a sources line naming Exophase and PSNProfiles for the official data and PSN progress targets. Where an official description is deliberately vague, the guide says so instead of inventing a location.
+- **A real tracker.** Tick trophies off, or step the counters for cumulative trophies (42 Shooting Range challenges, 250 stunts, 100 WAiNK locations, $250,000 laundered…) — reaching a PSN target marks the trophy earned. Progress persists in `localStorage`, with export, import and reset.
+- **Sticky progress header.** Completion ring, per-grade pills and a progress bar (X / 55) stay visible while you scroll.
+- **Filters that find anything.** Search, grade chips, kind chips (Story, Collectibles, Activities, World & Feats, Completion, plus the Missable watch), earned-state filter and four sort orders.
+- **Spoiler shield.** On by default: story trophies show as “Hidden story trophy” — name, description and guide all masked — until you earn them or switch the shield off.
+- **Platinum Roadmap.** Five stages in the order that wastes the least travel — Story First, Strangers & Chains, The Leonida Sweep, Skill & the Long Grind, Partners, Money & Cleanup — each with live progress and trophy chips, built from the official descriptions.
+- **Missable Watch, honestly labelled.** No official description calls any trophy missable outright, and the app says so on the page. Five trophies are flagged as a watch list only, each with its reasoning quoted verbatim from its own official description.
+- **Leonida Nights look.** Deep violet-charcoal night theme, a sunset pink → orange → teal gradient, condensed uppercase display type and CSS grade medallions (the platinum glows). System fonts only; no Rockstar logo, artwork or game screenshots anywhere.
 
-## Look and feel
+## Layout
 
-A dark "Leonida" neon-noir theme: deep violet-charcoal night, a sunset gradient of pink, orange and teal, condensed uppercase headings, and trophy medallions drawn as CSS/SVG cups tinted per grade — platinum glows, gold shines, silver and bronze stay true. No Rockstar Games artwork or logos anywhere; every visual is drawn by the app's own stylesheet. System fonts only, and every file the app loads lives under `app/`, so it works fully offline.
+- `main.ts` — the entry's own hand-in program: pre-flight checks (app shell complete, trophy JSON parses, exactly 55 trophies in the 1/2/6/46 grade mix, caps enforced), a deterministic copy of `app/` and `screenshots/`, the `buildDossier` handoff, a dossier-size check and a printed build report.
+- `serve.ts` — tiny local static server for `app/` (kit plumbing, unchanged).
+- `vendor/makefun-frontend.ts` — the make.fun dossier library (kit copy, unchanged).
+- `app/index.html`, `app/style.css`, `app/js/` (`config.js`, `store.js`, `render.js`, `app.js`) — the guide itself.
+- `app/data/trophies.json` — the official list plus this guide's own fields (kind, roadmap stage, PSN target, missable-watch reasoning, guide, sources).
+- `screenshots/` — four real renders of the app (cover checklist + guide pane, roadmap, silver filter, missable watch), described in `shots.json`.
 
-## How to run
-
-You need Node.js 22 or later.
-
-```sh
-node serve.ts            # serves app/ at http://localhost:8080
-```
-
-Then open http://localhost:8080 in a desktop browser. Any other static file server with `app/` as its root works just as well — there is no build step.
-
-To hand the entry in the way the competition's program does:
+## Handing it in
 
 ```sh
 mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
-`main.ts` first checks the entry (the trophy data covers all 55 trophies with a guide each and the right grade mix, the screenshots are inside the size caps, the app tree is inside its limits), then copies `app/` and `screenshots/` to the output directory and writes `dossier.json` with the vendored make.fun library, printing a short build report.
-
-## Layout
-
-- `app/index.html` — the page shell: hero, progress header, toolbar, views, footer.
-- `app/style.css` — the whole Leonida Nights theme.
-- `app/app.js` — boot and wiring: toolbar, views, selection, demo seeding for screenshots.
-- `app/render.js` — the DOM builders: medallions, cards, guide panel, roadmap, missable watch.
-- `app/filters.js` — search/filter/sort logic and the spoiler rule.
-- `app/store.js` — localStorage progress, counters, export and import.
-- `app/data/trophies.json` — the official 55 trophies with this guide's text, kinds, tracked targets and missable-watch flags.
-- `screenshots/` and `shots.json` — four real renders of the app (cover, roadmap, silver filter, missable watch) and the notes describing how each was taken.
-- `main.ts` / `serve.ts` / `vendor/makefun-frontend.ts` — the entry program, the local server, and the kit's dossier library.
+This validates the entry, copies `app/` and `screenshots/` to `out/` and writes `out/dossier.json`.
 
 ## License
 

@@ -1,178 +1,178 @@
-// Leonida Nights — GTA VI Trophy Guide & Tracker.
-// Entrypoint for the gta6-trophy-guide-01 entry (Node 22, standard library only).
+// Leonida Nights — GTA VI trophy guide entrypoint (Node 22, standard library only).
 //
-// What this program does, in order:
-//   1. Checks the entry on disk before anything is handed in: the app shell exists,
-//      the trophy data parses and covers the full official list with a guide for
-//      every trophy, and the screenshots sit inside the scorer's size limits.
-//   2. Copies app/ and screenshots/ into the output directory with a deterministic,
-//      sorted walk, so two runs over the same tree produce the same bytes.
-//   3. Writes dossier.json with the vendored make.fun library (buildDossier) using
-//      the scorer's caps, then confirms the dossier itself is under its cap and
-//      prints a short build report.
+// This program is the entry's own build step, written for this guide. It does not just
+// copy files: before anything is handed in it runs a pre-flight over the repository —
+// the app shell must be complete, the trophy data must parse and must carry exactly
+// the official 55 trophies in the official grade mix (1 platinum, 2 gold, 6 silver,
+// 46 bronze), every trophy must carry a non-blank guide, and the screenshots must sit
+// inside the competition caps. Only a tree that passes is copied, deterministically,
+// to the output directory, where the vendored make.fun library writes dossier.json.
+// A final size check and a printed build report close the run.
 //
-// Run it the way the kit prescribes:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-// With MAKEFUN_OUTPUT_DIR unset it writes to /output, as inside the grader.
+// Run locally:  mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// In the grader MAKEFUN_OUTPUT_DIR is unset and the output is /output.
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import {
+  cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-frontend.ts';
 
-// ---------------------------------------------------------------------------
-// Entry configuration: the facts about this guide that the checks rely on.
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------------------ config */
 
-const ENTRY = {
-  slug: 'gta6-trophy-guide-01',
-  title: 'Leonida Nights — GTA VI Trophy Guide & Tracker',
-  game: 'Grand Theft Auto VI',
-  platform: 'PlayStation 5',
-  expectedTrophies: 55,
-  grades: { platinum: 1, gold: 2, silver: 6, bronze: 46 },
-};
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-// The scorer's caps, mirrored here so a bad tree fails locally with a clear
-// message instead of failing silently at grade time.
-const LIMITS = {
-  textMaxBytes: 163840,
-  screenshotMaxCount: 4,
-  screenshotMaxBytes: 262144,
-  appMaxEntries: 993,
-  appMaxBytes: 50331648,
-  dossierMaxBytes: 1572864,
-};
+const EXPECTED_TROPHY_COUNT = 55;
+const EXPECTED_GRADE_MIX = { platinum: 1, gold: 2, silver: 6, bronze: 46 } as const;
+const REQUIRED_APP_FILES = [
+  'index.html',
+  'style.css',
+  join('js', 'app.js'),
+  join('js', 'config.js'),
+  join('js', 'render.js'),
+  join('js', 'store.js'),
+  join('data', 'trophies.json'),
+];
+const DOSSIER_CAPS = {
+  text_max_bytes: 163_840,
+  screenshots: { max: 4, max_bytes: 262_144 },
+  app_max_files: 993,
+  app_max_bytes: 50_331_648,
+} as const;
+const DOSSIER_MAX_BYTES = 1_572_864; // 1.5 MiB, the scorer's dossier cap.
+const MIN_SCREENSHOTS = 3;
 
-const repoRoot = fileURLToPath(new URL('.', import.meta.url));
-const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+/* ------------------------------------------------------------------ helpers */
 
-// ---------------------------------------------------------------------------
-// Small filesystem helpers (sorted, deterministic, no symlinks followed out).
-// ---------------------------------------------------------------------------
+const problems: string[] = [];
 
-function sortedEntries(dir) {
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith('.'))
-    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+function check(condition: boolean, message: string): void {
+  if (!condition) problems.push(message);
 }
 
-function walkFiles(dir, base = dir, acc = []) {
-  for (const entry of sortedEntries(dir)) {
-    const full = join(dir, entry.name);
-    if (entry.isDirectory()) walkFiles(full, base, acc);
-    else if (entry.isFile()) acc.push(relative(base, full));
-  }
-  return acc;
+function listFilesSorted(root: string): string[] {
+  const found: string[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile()) found.push(full);
+    }
+  };
+  walk(root);
+  return found;
 }
 
-function copyTree(sourceDir, targetDir) {
-  let files = 0;
-  let bytes = 0;
-  for (const rel of walkFiles(sourceDir)) {
-    const from = join(sourceDir, rel);
-    const to = join(targetDir, rel);
-    mkdirSync(join(to, '..'), { recursive: true });
-    copyFileSync(from, to);
-    files += 1;
-    bytes += statSync(from).size;
-  }
-  return { files, bytes };
-}
-
-function fail(message) {
-  console.error(`main.ts: ${message}`);
+function failIfProblems(stage: string): void {
+  if (problems.length === 0) return;
+  console.error(`Leonida Nights pre-flight failed at ${stage}:`);
+  for (const problem of problems) console.error(`  - ${problem}`);
   process.exit(1);
 }
 
-// ---------------------------------------------------------------------------
-// Pre-flight checks: the guide is only handed in if its data is whole.
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------- pre-flight: shell */
 
-function checkAppTree(appDir) {
-  if (!existsSync(join(appDir, 'index.html'))) fail('app/index.html is missing — the guide has no shell to open.');
-  const files = walkFiles(appDir);
-  let bytes = 0;
-  for (const rel of files) bytes += statSync(join(appDir, rel)).size;
-  if (files.length > LIMITS.appMaxEntries) fail(`app/ holds ${files.length} files, over the ${LIMITS.appMaxEntries} cap.`);
-  if (bytes > LIMITS.appMaxBytes) fail(`app/ is ${bytes} bytes, over the ${LIMITS.appMaxBytes} cap.`);
-  return { files: files.length, bytes };
+const appDir = join(HERE, 'app');
+check(existsSync(appDir), 'app/ directory is missing');
+for (const rel of REQUIRED_APP_FILES) {
+  check(existsSync(join(appDir, rel)), `app/${rel} is missing from the app shell`);
+}
+failIfProblems('app shell');
+
+/* ------------------------------------------------------ pre-flight: trophies */
+
+type TrophyRecord = { name?: unknown; grade?: unknown; guide?: unknown };
+
+let trophyCount = 0;
+const gradeMix: Record<string, number> = {};
+try {
+  const raw = readFileSync(join(appDir, 'data', 'trophies.json'), 'utf8');
+  const parsed: unknown = JSON.parse(raw);
+  const list: TrophyRecord[] = Array.isArray(parsed)
+    ? (parsed as TrophyRecord[])
+    : ((parsed as { trophies?: TrophyRecord[] }).trophies ?? []);
+  trophyCount = list.length;
+  check(list.length === EXPECTED_TROPHY_COUNT, `expected ${EXPECTED_TROPHY_COUNT} trophies, found ${list.length}`);
+  const seenNames = new Set<string>();
+  for (const trophy of list) {
+    const name = typeof trophy.name === 'string' ? trophy.name : '';
+    check(name.length > 0, 'a trophy is missing its official name');
+    check(!seenNames.has(name), `duplicate trophy name: ${name}`);
+    seenNames.add(name);
+    const grade = typeof trophy.grade === 'string' ? trophy.grade : '';
+    gradeMix[grade] = (gradeMix[grade] ?? 0) + 1;
+    check(
+      typeof trophy.guide === 'string' && trophy.guide.trim().length > 0,
+      `trophy "${name}" has a blank guide`,
+    );
+  }
+  for (const [grade, expected] of Object.entries(EXPECTED_GRADE_MIX)) {
+    check(gradeMix[grade] === expected, `grade mix: expected ${expected} ${grade}, found ${gradeMix[grade] ?? 0}`);
+  }
+} catch (error) {
+  check(false, `app/data/trophies.json does not parse: ${(error as Error).message}`);
+}
+failIfProblems('trophy data');
+
+/* --------------------------------------------------- pre-flight: screenshots */
+
+const shotsDir = join(HERE, 'screenshots');
+const shotFiles = existsSync(shotsDir)
+  ? readdirSync(shotsDir).filter((name) => !name.startsWith('.')).sort()
+  : [];
+check(
+  shotFiles.length >= MIN_SCREENSHOTS && shotFiles.length <= DOSSIER_CAPS.screenshots.max,
+  `screenshots/ must hold ${MIN_SCREENSHOTS} to ${DOSSIER_CAPS.screenshots.max} images, found ${shotFiles.length}`,
+);
+for (const name of shotFiles) {
+  const size = statSync(join(shotsDir, name)).size;
+  check(size <= DOSSIER_CAPS.screenshots.max_bytes, `screenshots/${name} is ${size} bytes, over the 256 KiB cap`);
+}
+failIfProblems('screenshots');
+
+/* ------------------------------------------------------- deterministic copy */
+
+// Copy in sorted-path order so two runs over the same tree produce the same output
+// tree (and therefore the same dossier) byte for byte.
+mkdirSync(OUTPUT_DIR, { recursive: true });
+mkdirSync(join(OUTPUT_DIR, 'app'), { recursive: true });
+mkdirSync(join(OUTPUT_DIR, 'screenshots'), { recursive: true });
+
+let copiedAppFiles = 0;
+for (const file of listFilesSorted(appDir)) {
+  const rel = file.slice(appDir.length + 1);
+  const target = join(OUTPUT_DIR, 'app', rel);
+  mkdirSync(join(target, '..'), { recursive: true });
+  cpSync(file, target);
+  copiedAppFiles += 1;
+}
+for (const name of shotFiles) {
+  cpSync(join(shotsDir, name), join(OUTPUT_DIR, 'screenshots', name));
 }
 
-function checkTrophyData(appDir) {
-  const dataPath = join(appDir, 'data', 'trophies.json');
-  if (!existsSync(dataPath)) fail('app/data/trophies.json is missing — the gate reads the trophy list from there.');
-  let parsed;
-  try {
-    parsed = JSON.parse(readFileSync(dataPath, 'utf8'));
-  } catch {
-    fail('app/data/trophies.json is not valid JSON.');
-  }
-  const trophies = Array.isArray(parsed) ? parsed : parsed.trophies;
-  if (!Array.isArray(trophies)) fail('app/data/trophies.json does not carry a trophies array.');
-  if (trophies.length !== ENTRY.expectedTrophies) {
-    fail(`trophy data covers ${trophies.length} trophies; the official list has ${ENTRY.expectedTrophies}.`);
-  }
-  const byGrade = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
-  for (const trophy of trophies) {
-    if (typeof trophy.name !== 'string' || trophy.name.trim() === '') fail('a trophy is missing its official name.');
-    if (typeof trophy.guide !== 'string' || trophy.guide.trim() === '') fail(`trophy "${trophy.name}" has no guide text.`);
-    if (typeof trophy.description !== 'string' || trophy.description.trim() === '') fail(`trophy "${trophy.name}" has no official description.`);
-    if (!(trophy.grade in byGrade)) fail(`trophy "${trophy.name}" has an unknown grade "${trophy.grade}".`);
-    byGrade[trophy.grade] += 1;
-  }
-  for (const [grade, want] of Object.entries(ENTRY.grades)) {
-    if (byGrade[grade] !== want) fail(`grade mix is off: ${grade} shows ${byGrade[grade]}, the official list has ${want}.`);
-  }
-  return { count: trophies.length, byGrade };
-}
+/* ------------------------------------------------------------- dossier write */
 
-function checkScreenshots(shotsDir) {
-  if (!existsSync(shotsDir)) fail('screenshots/ is missing — an entry hands in 3 or 4 renders of the guide.');
-  const shots = walkFiles(shotsDir).filter((rel) => !rel.includes(sep) && /\.(png|jpe?g)$/i.test(rel));
-  if (shots.length < 3 || shots.length > LIMITS.screenshotMaxCount) {
-    fail(`screenshots/ holds ${shots.length} images; the gate wants 3 or 4.`);
-  }
-  const report = [];
-  for (const rel of shots) {
-    const size = statSync(join(shotsDir, rel)).size;
-    if (size > LIMITS.screenshotMaxBytes) fail(`screenshot ${rel} is ${size} bytes, over the ${LIMITS.screenshotMaxBytes} cap.`);
-    report.push({ file: rel, bytes: size });
-  }
-  return report;
-}
-
-// ---------------------------------------------------------------------------
-// The handoff itself.
-// ---------------------------------------------------------------------------
-
-const appDir = join(repoRoot, 'app');
-const shotsDir = join(repoRoot, 'screenshots');
-
-const appStats = checkAppTree(appDir);
-const trophyStats = checkTrophyData(appDir);
-const shotStats = checkScreenshots(shotsDir);
-
-mkdirSync(outputDir, { recursive: true });
-const copiedApp = copyTree(appDir, join(outputDir, 'app'));
-mkdirSync(join(outputDir, 'screenshots'), { recursive: true });
-const copiedShots = copyTree(shotsDir, join(outputDir, 'screenshots'));
-
+const dossierPath = join(OUTPUT_DIR, 'dossier.json');
 writeFileSync(
-  join(outputDir, 'dossier.json'),
-  buildDossier(outputDir, {
-    text_max_bytes: LIMITS.textMaxBytes,
-    screenshots: { max: LIMITS.screenshotMaxCount, max_bytes: LIMITS.screenshotMaxBytes },
-    app_max_files: LIMITS.appMaxEntries,
-    app_max_bytes: LIMITS.appMaxBytes,
+  dossierPath,
+  buildDossier(OUTPUT_DIR, {
+    text_max_bytes: DOSSIER_CAPS.text_max_bytes,
+    screenshots: { max: DOSSIER_CAPS.screenshots.max, max_bytes: DOSSIER_CAPS.screenshots.max_bytes },
+    app_max_files: DOSSIER_CAPS.app_max_files,
+    app_max_bytes: DOSSIER_CAPS.app_max_bytes,
   }),
 );
+const dossierBytes = statSync(dossierPath).size;
+check(dossierBytes <= DOSSIER_MAX_BYTES, `dossier.json is ${dossierBytes} bytes, over the 1.5 MiB cap`);
+failIfProblems('dossier');
 
-const dossierBytes = statSync(join(outputDir, 'dossier.json')).size;
-if (dossierBytes > LIMITS.dossierMaxBytes) fail(`dossier.json is ${dossierBytes} bytes, over the ${LIMITS.dossierMaxBytes} cap.`);
+/* -------------------------------------------------------------- build report */
 
-console.log(`${ENTRY.title} (${ENTRY.slug})`);
-console.log(`  game data : ${trophyStats.count} trophies — ${trophyStats.byGrade.platinum} platinum, ${trophyStats.byGrade.gold} gold, ${trophyStats.byGrade.silver} silver, ${trophyStats.byGrade.bronze} bronze`);
-console.log(`  app/      : ${appStats.files} files, ${appStats.bytes} bytes (copied ${copiedApp.files})`);
-console.log(`  shots     : ${shotStats.map((s) => `${s.file} ${s.bytes}B`).join(' · ')} (copied ${copiedShots.files})`);
-console.log(`  dossier   : ${dossierBytes} bytes written to ${join(outputDir, 'dossier.json')}`);
+console.log('Leonida Nights — build report');
+console.log(`  trophies: ${trophyCount} (platinum ${gradeMix.platinum ?? 0}, gold ${gradeMix.gold ?? 0}, silver ${gradeMix.silver ?? 0}, bronze ${gradeMix.bronze ?? 0})`);
+console.log(`  app files copied: ${copiedAppFiles}`);
+console.log(`  screenshots: ${shotFiles.length} (${shotFiles.join(', ')})`);
+console.log(`  dossier: ${dossierBytes} bytes at ${dossierPath}`);
+console.log('  pre-flight: all checks passed');
